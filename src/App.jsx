@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Hero from './components/Hero';
@@ -23,10 +23,14 @@ function App() {
   const gearRef = useRef(null);
   const progressRef = useRef(null);
 
-  const [activeStage, setActiveStage] = useState(1);
+  // Direct DOM refs for stages to prevent React state re-renders during high-frequency scroll
+  const stage1PillRef = useRef(null);
+  const stage2PillRef = useRef(null);
+  const stage3PillRef = useRef(null);
+  const stageDescRef = useRef(null);
 
   useLayoutEffect(() => {
-    // Accessibility check: Reduced motion preferences
+    // Accessibility: Respect reduced motion preference
     const prefersReducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches;
@@ -38,13 +42,13 @@ function App() {
       });
 
       if (!prefersReducedMotion) {
-        // Staggered letters reveal for "WELCOME ITZ FIZZ"
+        // Staggered letters entrance for "WELCOME ITZ FIZZ"
         const letters = lettersContainerRef.current?.querySelectorAll('[data-letter]');
         if (letters && letters.length > 0) {
           introTl.from(letters, {
-            y: 40,
+            y: 35,
             opacity: 0,
-            rotateX: 45,
+            rotateX: 40,
             stagger: 0.035,
             duration: 0.8,
             ease: 'back.out(1.4)',
@@ -70,7 +74,7 @@ function App() {
           introTl.from(
             statCards,
             {
-              y: 35,
+              y: 30,
               opacity: 0,
               stagger: 0.12,
               duration: 0.7,
@@ -94,7 +98,7 @@ function App() {
           );
         }
       } else {
-        // Reduced motion fallback: Instant fade in
+        // Reduced motion fallback: Direct visibility without transforms
         gsap.set(
           [
             lettersContainerRef.current?.querySelectorAll('[data-letter]'),
@@ -108,32 +112,24 @@ function App() {
 
       // 2. Scroll-Driven Animation Implementation
       if (!prefersReducedMotion && roadRef.current && carRef.current && trackWrapperRef.current) {
-        const updateCarKinematics = () => {
-          const roadWidth = roadRef.current.clientWidth;
-          const carWidth = carRef.current.clientWidth || 220;
-          const maxTravelDistance = Math.max(0, roadWidth - carWidth - 24); // Keep padding from right border
+        let currentActiveStage = 1;
 
-          return { maxTravelDistance, carWidth };
-        };
-
-        const { maxTravelDistance } = updateCarKinematics();
-
-        // Pinned interactive track section with bidirectional scrub
-        const scrollAnimation = gsap.to(carRef.current, {
+        gsap.to(carRef.current, {
           x: () => {
             const roadWidth = roadRef.current ? roadRef.current.clientWidth : window.innerWidth;
             const carWidth = carRef.current ? carRef.current.clientWidth : 220;
+            // Precise padding from road boundaries across all device viewports
             return Math.max(0, roadWidth - carWidth - 16);
           },
           ease: 'none',
           scrollTrigger: {
             trigger: trackWrapperRef.current,
             start: 'top top',
-            end: '+=180%', // Rich scroll distance
-            scrub: 0.6,   // Smooth interpolation
-            pin: true,    // Pin sticky viewport during scrub
+            end: '+=180%', // Balanced, smooth scroll range
+            scrub: 0.5,   // Smooth interpolation for mousewheel, touch, and trackpad
+            pin: true,    // Pinned sticky experience
             anticipatePin: 1,
-            invalidateOnRefresh: true, // Handle responsive viewport resizes accurately
+            invalidateOnRefresh: true, // Recalculate dimensions on window resize
             onUpdate: (self) => {
               const progress = self.progress; // 0 to 1
               const velocity = Math.abs(self.getVelocity()); // px/sec
@@ -142,18 +138,16 @@ function App() {
               if (trailRef.current && carRef.current) {
                 const currentCarX = gsap.getProperty(carRef.current, 'x');
                 const carWidth = carRef.current.clientWidth || 220;
-                // Trail extends right to the rear wheel/center of vehicle
                 const trailLength = Math.max(0, Number(currentCarX) + carWidth * 0.35);
                 trailRef.current.style.width = `${trailLength}px`;
               }
 
-              // Update Telemetry HUD Metrics
+              // Update Telemetry HUD Metrics (No React re-render overhead)
               if (progressRef.current) {
                 progressRef.current.textContent = `${Math.round(progress * 100)}%`;
               }
 
               if (speedRef.current) {
-                // Dynamic speed calculation based on scroll velocity + baseline progress
                 const dynamicSpeed = Math.min(345, Math.round(progress * 180 + Math.min(160, velocity * 0.08)));
                 speedRef.current.textContent = `${dynamicSpeed} km/h`;
               }
@@ -173,17 +167,61 @@ function App() {
                 rpmRef.current.textContent = calculatedRpm.toLocaleString();
               }
 
-              // Synchronize Active Stage Highlight
-              if (progress < 0.33) {
-                setActiveStage(1);
-              } else if (progress < 0.66) {
-                setActiveStage(2);
-              } else {
-                setActiveStage(3);
+              // Update Stage Pills efficiently
+              let newStage = 1;
+              if (progress >= 0.33 && progress < 0.66) newStage = 2;
+              else if (progress >= 0.66) newStage = 3;
+
+              if (newStage !== currentActiveStage) {
+                currentActiveStage = newStage;
+                updateStageUI(newStage);
               }
             },
           },
         });
+
+        const updateStageUI = (stage) => {
+          const p1 = stage1PillRef.current;
+          const p2 = stage2PillRef.current;
+          const p3 = stage3PillRef.current;
+          const desc = stageDescRef.current;
+
+          const inactiveClass = 'border-slate-800 bg-slate-900/50 text-slate-500 font-normal';
+          
+          if (p1) p1.className = `px-3 py-1 rounded-full border transition-all text-xs font-mono ${
+            stage === 1
+              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+              : inactiveClass
+          }`;
+
+          if (p2) p2.className = `px-3 py-1 rounded-full border transition-all text-xs font-mono ${
+            stage === 2
+              ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400 font-semibold shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : inactiveClass
+          }`;
+
+          if (p3) p3.className = `px-3 py-1 rounded-full border transition-all text-xs font-mono ${
+            stage === 3
+              ? 'border-amber-500 bg-amber-500/10 text-amber-400 font-semibold shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+              : inactiveClass
+          }`;
+
+          if (desc) {
+            if (stage === 1) {
+              desc.textContent =
+                'Initial launch state: Inertial dampers engaged. High-torque electric powertrain initiates scrub-linked progression.';
+              desc.className = 'text-xs sm:text-sm text-slate-400 transition-opacity duration-300';
+            } else if (stage === 2) {
+              desc.textContent =
+                'Mid-band acceleration: Downforce optimization active. Real-time light trail renders synchronized vehicle displacement.';
+              desc.className = 'text-xs sm:text-sm text-cyan-300 transition-opacity duration-300';
+            } else {
+              desc.textContent =
+                'Terminal velocity reached: Telemetry sync at 100%. Kinetic energy regeneration system stabilizes momentum.';
+              desc.className = 'text-xs sm:text-sm text-amber-300 transition-opacity duration-300';
+            }
+          }
+        };
       }
     }, containerRef);
 
@@ -270,31 +308,22 @@ function App() {
         className="w-full min-h-screen flex flex-col items-center justify-center relative py-6 px-4"
       >
         {/* Stage Progress Pills */}
-        <div className="flex items-center gap-2 sm:gap-4 mb-3 font-mono text-xs">
+        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mb-3 font-mono text-xs">
           <div
-            className={`px-3 py-1 rounded-full border transition-all ${
-              activeStage === 1
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                : 'border-slate-800 bg-slate-900/50 text-slate-500'
-            }`}
+            ref={stage1PillRef}
+            className="px-3 py-1 rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.3)] transition-all"
           >
             STAGE 01: IGNITION &amp; LAUNCH
           </div>
           <div
-            className={`px-3 py-1 rounded-full border transition-all ${
-              activeStage === 2
-                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400 font-semibold shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                : 'border-slate-800 bg-slate-900/50 text-slate-500'
-            }`}
+            ref={stage2PillRef}
+            className="px-3 py-1 rounded-full border border-slate-800 bg-slate-900/50 text-slate-500 font-normal transition-all"
           >
             STAGE 02: KINETIC ACCELERATION
           </div>
           <div
-            className={`px-3 py-1 rounded-full border transition-all ${
-              activeStage === 3
-                ? 'border-amber-500 bg-amber-500/10 text-amber-400 font-semibold shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                : 'border-slate-800 bg-slate-900/50 text-slate-500'
-            }`}
+            ref={stage3PillRef}
+            className="px-3 py-1 rounded-full border border-slate-800 bg-slate-900/50 text-slate-500 font-normal transition-all"
           >
             STAGE 03: APEX VELOCITY
           </div>
@@ -314,21 +343,12 @@ function App() {
 
         {/* Dynamic Context Description based on Active Stage */}
         <div className="max-w-2xl text-center px-4 mt-2 h-14">
-          {activeStage === 1 && (
-            <p className="text-xs sm:text-sm text-slate-400 animate-fadeIn">
-              Initial launch state: Inertial dampers engaged. High-torque electric powertrain initiates scrub-linked progression.
-            </p>
-          )}
-          {activeStage === 2 && (
-            <p className="text-xs sm:text-sm text-cyan-300 animate-fadeIn">
-              Mid-band acceleration: Downforce optimization active. Real-time light trail renders synchronized vehicle displacement.
-            </p>
-          )}
-          {activeStage === 3 && (
-            <p className="text-xs sm:text-sm text-amber-300 animate-fadeIn">
-              Terminal velocity reached: Telemetry sync at 100%. Kinetic energy regeneration system stabilizes momentum.
-            </p>
-          )}
+          <p
+            ref={stageDescRef}
+            className="text-xs sm:text-sm text-slate-400 transition-opacity duration-300"
+          >
+            Initial launch state: Inertial dampers engaged. High-torque electric powertrain initiates scrub-linked progression.
+          </p>
         </div>
       </section>
 
