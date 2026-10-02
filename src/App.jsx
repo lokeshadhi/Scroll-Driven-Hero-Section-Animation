@@ -114,72 +114,6 @@ function App() {
       if (!prefersReducedMotion && roadRef.current && carRef.current && trackWrapperRef.current) {
         let currentActiveStage = 1;
 
-        gsap.to(carRef.current, {
-          x: () => {
-            const roadWidth = roadRef.current ? roadRef.current.clientWidth : window.innerWidth;
-            const carWidth = carRef.current ? carRef.current.clientWidth : 220;
-            // Precise padding from road boundaries across all device viewports
-            return Math.max(0, roadWidth - carWidth - 16);
-          },
-          ease: 'none',
-          scrollTrigger: {
-            trigger: trackWrapperRef.current,
-            start: 'top top',
-            end: '+=180%', // Balanced, smooth scroll range
-            scrub: 0.5,   // Smooth interpolation for mousewheel, touch, and trackpad
-            pin: true,    // Pinned sticky experience
-            anticipatePin: 1,
-            invalidateOnRefresh: true, // Recalculate dimensions on window resize
-            onUpdate: (self) => {
-              const progress = self.progress; // 0 to 1
-              const velocity = Math.abs(self.getVelocity()); // px/sec
-
-              // Update Light Trail Width
-              if (trailRef.current && carRef.current) {
-                const currentCarX = gsap.getProperty(carRef.current, 'x');
-                const carWidth = carRef.current.clientWidth || 220;
-                const trailLength = Math.max(0, Number(currentCarX) + carWidth * 0.35);
-                trailRef.current.style.width = `${trailLength}px`;
-              }
-
-              // Update Telemetry HUD Metrics (No React re-render overhead)
-              if (progressRef.current) {
-                progressRef.current.textContent = `${Math.round(progress * 100)}%`;
-              }
-
-              if (speedRef.current) {
-                const dynamicSpeed = Math.min(345, Math.round(progress * 180 + Math.min(160, velocity * 0.08)));
-                speedRef.current.textContent = `${dynamicSpeed} km/h`;
-              }
-
-              if (gearRef.current) {
-                let currentGear = 'N';
-                if (progress > 0.05 && progress < 0.25) currentGear = '1';
-                else if (progress >= 0.25 && progress < 0.45) currentGear = '2';
-                else if (progress >= 0.45 && progress < 0.65) currentGear = '3';
-                else if (progress >= 0.65 && progress < 0.85) currentGear = '4';
-                else if (progress >= 0.85) currentGear = '5';
-                gearRef.current.textContent = currentGear;
-              }
-
-              if (rpmRef.current) {
-                const calculatedRpm = Math.min(9200, Math.round(900 + progress * 7200 + (velocity > 50 ? 800 : 0)));
-                rpmRef.current.textContent = calculatedRpm.toLocaleString();
-              }
-
-              // Update Stage Pills efficiently
-              let newStage = 1;
-              if (progress >= 0.33 && progress < 0.66) newStage = 2;
-              else if (progress >= 0.66) newStage = 3;
-
-              if (newStage !== currentActiveStage) {
-                currentActiveStage = newStage;
-                updateStageUI(newStage);
-              }
-            },
-          },
-        });
-
         const updateStageUI = (stage) => {
           const p1 = stage1PillRef.current;
           const p2 = stage2PillRef.current;
@@ -222,6 +156,94 @@ function App() {
             }
           }
         };
+
+        const updateTelemetry = (rawProgress, velocity) => {
+          // Clamp progress strictly between 0 and 1
+          const progress = Math.min(1, Math.max(0, rawProgress));
+
+          // Dynamic light trail follows car front edge exactly
+          if (trailRef.current && carRef.current) {
+            const currentCarX = gsap.getProperty(carRef.current, 'x');
+            const carWidth = carRef.current.clientWidth || 220;
+            const trailLength = Math.max(0, Number(currentCarX) + carWidth * 0.35);
+            trailRef.current.style.width = `${trailLength}px`;
+          }
+
+          // Telemetry HUD metrics with accurate endpoint handling
+          if (progressRef.current) {
+            // When progress is 0.99 or higher, lock display to 100%
+            const pct = progress >= 0.99 ? 100 : Math.round(progress * 100);
+            progressRef.current.textContent = `${pct}%`;
+          }
+
+          if (speedRef.current) {
+            const speed = progress >= 0.99
+              ? 345
+              : Math.min(345, Math.round(progress * 180 + Math.min(160, velocity * 0.08)));
+            speedRef.current.textContent = `${speed} km/h`;
+          }
+
+          if (gearRef.current) {
+            let currentGear = 'N';
+            if (progress > 0.05 && progress < 0.25) currentGear = '1';
+            else if (progress >= 0.25 && progress < 0.45) currentGear = '2';
+            else if (progress >= 0.45 && progress < 0.65) currentGear = '3';
+            else if (progress >= 0.65 && progress < 0.85) currentGear = '4';
+            else if (progress >= 0.85) currentGear = '5';
+            gearRef.current.textContent = currentGear;
+          }
+
+          if (rpmRef.current) {
+            const calculatedRpm = progress >= 0.99
+              ? 9200
+              : Math.min(9200, Math.round(900 + progress * 7200 + (velocity > 50 ? 800 : 0)));
+            rpmRef.current.textContent = calculatedRpm.toLocaleString();
+          }
+
+          // Update Stage Pills efficiently
+          let newStage = 1;
+          if (progress >= 0.33 && progress < 0.66) newStage = 2;
+          else if (progress >= 0.66) newStage = 3;
+
+          if (newStage !== currentActiveStage) {
+            currentActiveStage = newStage;
+            updateStageUI(newStage);
+          }
+        };
+
+        gsap.to(carRef.current, {
+          x: () => {
+            const roadWidth = roadRef.current ? roadRef.current.clientWidth : window.innerWidth;
+            const carWidth = carRef.current ? carRef.current.clientWidth : 220;
+            // Precise padding from road boundaries across all device viewports
+            return Math.max(0, roadWidth - carWidth - 16);
+          },
+          ease: 'none',
+          scrollTrigger: {
+            trigger: trackWrapperRef.current,
+            start: 'top top',
+            end: '+=180%', // Balanced, smooth scroll range
+            scrub: 0.3,   // Responsive scrub timing for immediate endpoint settlement
+            pin: true,    // Pinned sticky experience
+            anticipatePin: 1,
+            invalidateOnRefresh: true, // Recalculate dimensions on window resize
+            onUpdate: (self) => {
+              const velocity = Math.abs(self.getVelocity()); // px/sec
+              updateTelemetry(self.progress, velocity);
+            },
+            onScrubComplete: (self) => {
+              updateTelemetry(self.progress, 0);
+            },
+            onLeave: () => {
+              // Scrolled past the end: ensure 100% completion state
+              updateTelemetry(1, 0);
+            },
+            onLeaveBack: () => {
+              // Scrolled before the start: ensure 0% reset state
+              updateTelemetry(0, 0);
+            },
+          },
+        });
       }
     }, containerRef);
 
@@ -305,10 +327,10 @@ function App() {
       <section
         id="interactive-track"
         ref={trackWrapperRef}
-        className="w-full min-h-screen flex flex-col items-center justify-center relative py-6 px-4"
+        className="w-full h-screen max-h-screen flex flex-col items-center justify-center relative py-2 sm:py-4 px-4 overflow-hidden"
       >
         {/* Stage Progress Pills */}
-        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mb-3 font-mono text-xs">
+        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mb-2 font-mono text-xs">
           <div
             ref={stage1PillRef}
             className="px-3 py-1 rounded-full border border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.3)] transition-all"
@@ -342,7 +364,7 @@ function App() {
         />
 
         {/* Dynamic Context Description based on Active Stage */}
-        <div className="max-w-2xl text-center px-4 mt-2 h-14">
+        <div className="max-w-2xl text-center px-4 mt-1 sm:mt-2 min-h-[48px] flex items-center justify-center">
           <p
             ref={stageDescRef}
             className="text-xs sm:text-sm text-slate-400 transition-opacity duration-300"
@@ -355,7 +377,7 @@ function App() {
       {/* Engineering Specs & Architecture Section */}
       <section
         id="architecture"
-        className="w-full max-w-5xl py-20 px-4 flex flex-col items-center"
+        className="w-full max-w-5xl pt-24 pb-20 px-4 flex flex-col items-center relative z-10"
       >
         <div className="text-center mb-12">
           <span className="text-[11px] font-mono tracking-widest uppercase text-emerald-400">
