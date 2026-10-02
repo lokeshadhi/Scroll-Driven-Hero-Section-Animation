@@ -46,12 +46,12 @@ function App() {
         const letters = lettersContainerRef.current?.querySelectorAll('[data-letter]');
         if (letters && letters.length > 0) {
           introTl.from(letters, {
-            y: 35,
+            y: 20,
             opacity: 0,
-            rotateX: 40,
-            stagger: 0.035,
-            duration: 0.8,
-            ease: 'back.out(1.4)',
+            stagger: 0.03,
+            duration: 0.6,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity', // ensures letters are perfectly straight and clean after animation
           });
         }
 

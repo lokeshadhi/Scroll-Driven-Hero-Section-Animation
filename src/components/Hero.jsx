@@ -38,19 +38,19 @@ const Hero = ({ headlineRef, subtitleRef, lettersContainerRef }) => {
       >
         <h1
           ref={lettersContainerRef}
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold uppercase text-slate-100 flex flex-wrap justify-center items-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 select-none"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase text-slate-100 flex flex-wrap justify-center items-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 select-none tracking-normal"
           aria-label="WELCOME ITZ FIZZ"
         >
           {words.map((word, wordIdx) => (
             <span
               key={wordIdx}
-              className="inline-flex items-center tracking-[0.14em] sm:tracking-[0.18em] md:tracking-[0.2em] whitespace-nowrap"
+              className="inline-flex items-baseline tracking-[0.14em] sm:tracking-[0.16em] md:tracking-[0.18em] whitespace-nowrap"
             >
               {word.letters.map((char, charIdx) => (
                 <span
                   key={charIdx}
                   data-letter
-                  className="inline-block transition-transform duration-200 hover:text-emerald-400 hover:-translate-y-0.5 will-change-transform"
+                  className="inline-block transition-colors duration-200 hover:text-emerald-400 leading-none"
                 >
                   {char}
                 </span>
