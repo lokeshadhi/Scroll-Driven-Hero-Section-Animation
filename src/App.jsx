@@ -411,7 +411,7 @@ function App() {
       {/* Footer */}
       <footer className="w-full border-t border-slate-800/80 py-8 px-4 text-center text-xs text-slate-500 font-mono">
         <p>
-          SCROLL-DRIVEN HERO SECTION ANIMATION &copy; {new Date().getFullYear()} &mdash; CRAFTED WITH REACT, GSAP &amp; TAILWIND CSS
+          SCROLL-DRIVEN HERO SECTION ANIMATION &copy; 2026 &mdash; CRAFTED WITH REACT, GSAP &amp; TAILWIND CSS
         </p>
       </footer>
     </div>
