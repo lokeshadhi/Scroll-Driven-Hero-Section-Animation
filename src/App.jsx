@@ -310,7 +310,7 @@ function App() {
       {/* Impact Statistics Section */}
       <section
         id="metrics"
-        className="w-full flex flex-col items-center justify-center py-8 md:py-12"
+        className="w-full flex flex-col items-center justify-center py-6 md:py-10"
       >
         <div className="mb-4 text-center">
           <span className="text-[11px] font-mono tracking-widest uppercase text-emerald-400">
