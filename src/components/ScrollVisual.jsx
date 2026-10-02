@@ -22,7 +22,7 @@ const ScrollVisual = forwardRef(
     return (
       <div
         ref={ref}
-        className="w-full max-w-7xl px-4 my-8 md:my-12 flex flex-col items-center select-none"
+        className="w-full max-w-7xl px-4 my-2 sm:my-3 flex flex-col items-center select-none"
         aria-hidden="true"
       >
         {/* Telemetry Dashboard Banner */}
@@ -131,7 +131,7 @@ const ScrollVisual = forwardRef(
         </div>
 
         {/* Sub-track Scroll Guidance */}
-        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 font-mono">
+        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 font-mono">
           <span className="inline-block animate-bounce">↓</span>
           <span>SCROLL DOWN TO ENGAGE PROPULSION &amp; DISCOVER STAGES</span>
         </div>
